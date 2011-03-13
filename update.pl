@@ -2,41 +2,17 @@
 
 use Git;
 use GitLog;
+use GitUtil;
 use Data::Dumper;
 
-sub get_since() {
-    open(SINCE, "<", "since") || return undef;
-    my $line = <SINCE>;
-    close SINCE;
-    if (defined $line) {
-        chomp $line;
-        return $line if $line =~ /^[a-f0-9]+$/;
-    }
-    return undef;
-}
+my $sincefile = "since";
 
-sub update_since($) {
-    my $newSince = shift;
-
-    unless (defined $newSince) {
-        print "No new commits\n";
-        exit 0;
-    }
-
-    open(SINCE, ">", "since") || die "Could not open 'since' for writing";
-    # TODO This breaks if there is no new commit
-    print SINCE $newSince;
-    close SINCE;
-
-    print "Last commit is now $newSince\n";
-}
-
-my $since = get_since();
+my $since = GitUtil::get_since($sincefile);
 
 print "since is $since\n" if defined $since;
 
 # TODO: take on command-line
-my $repo = Git->repository (Directory => '/home/chase/git');
+my $repo = Git->repository (Directory => '/cygdrive/c/src/globalsight');
 
 # Hacky
 mkdir 'patches' unless -d 'patches';
@@ -48,7 +24,7 @@ $log->init;
 $log->next;
 
 # Now update the since value
-update_since($latestCommit);
+GitUtil::update_since($sincefile, $latestCommit);
 
 sub entry_callback($) {
     my $entry = shift;
