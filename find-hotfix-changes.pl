@@ -70,15 +70,24 @@ sub update_files($$@) {
     my ($jboss, $buildDirectory, @files) = @_;
 
     my @filesToCopy = ();
+    # TODO: won't work for .js, some other file types
     foreach my $f (@files) {
         if ($f =~ /\.java$/) {
             print "Skipping Java file: $f\n";
             next;
         }
-        # ./capclasses/globalsight.ear/lib/classes
-        push @filesToCopy, $buildDirectory . 
-                        '/capclasses/globalsight.ear/lib/classes/' .
-                        $f;
+        elsif ($f =~ /\.jsp$/ or $f =~ /\.jspIncl$/) {
+            # JSPs live in a different place
+            push @filesToCopy, $buildDirectory . 
+                            '/capclasses/globalsight.ear/globalsight-web.war/'.
+                            $f;
+        }
+        else {
+            # ./capclasses/globalsight.ear/lib/classes
+            push @filesToCopy, $buildDirectory . 
+                            '/capclasses/globalsight.ear/lib/classes/' .
+                            $f;
+        }
     }
 
 # Remapping 
@@ -98,7 +107,7 @@ sub update_files($$@) {
     # Make sure everthing is in a location we know about
     print "== Found Files to Update ==\n";
     foreach my $path (@filesToCopy) {
-        unless ($path =~ /^$capPath/) {
+        unless ($path =~ /^$capRoot/) {
             print "Unknown location: $path\n";
         }
         else {
