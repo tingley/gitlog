@@ -6,9 +6,10 @@
 use Git;
 use GitUtil;
 
-# TODO: this will not handle jars correctly
-
 sub update_files($$@);
+sub run($);
+
+# TODO: this will not handle jars correctly
 
 my @ALLOWED = (
     'main6/envoy/src/java/',
@@ -21,7 +22,7 @@ my @ALLOWED = (
 # and master
 my $MERGE_BASE = "bbcbc1cb6e507e41b82df55150560ab7f02928b6";
 my $GS_HOME = "/home/chase/test";
-my $DRY_RUN = 1; 
+my $DRY_RUN = 0; 
 
 if (scalar @ARGV < 1 || scalar @ARGV > 2) {
     print STDERR "Usage: $0 [repository] [commit]\n";
@@ -63,31 +64,16 @@ update_files($GS_HOME . "/jboss",
 sub update_files($$@) {
     my ($jboss, $buildDirectory, @files) = @_;
 
-    my @filenames = ();
-
+    my @filesToCopy = ();
     foreach my $f (@files) {
         if ($f =~ /\.java$/) {
             print "Skipping Java file: $f\n";
             next;
         }
-        my @parts = split /\//, $f;
-        push @filenames, $parts[$#parts];
-    }
-
-    my @filesToCopy = ();
-    foreach my $name (@filenames) {
-        open(my $fh, "find $buildDirectory -name $name|") || die $!;
-        my @lines = <$fh>;
-        if (scalar @lines > 1) {
-            print STDERR "Ambiguous filename '$name':\n";
-            foreach my $l (@lines) {
-                print STDERR "$l\n";
-            }
-            die;
-        }
-        my $path = $lines[0];
-        chomp $path;
-        push @filesToCopy, $path;
+        # ./capclasses/globalsight.ear/lib/classes
+        push @filesToCopy, $buildDirectory . 
+                        '/capclasses/globalsight.ear/lib/classes/' .
+                        $f;
     }
 
 # Remapping 
@@ -124,11 +110,19 @@ sub update_files($$@) {
 
     print "== Applying Changes ==\n";
     foreach my $c (@commands) {
-        print "$c\n";
-        unless ($DRY_RUN) {
-            unless (system($c) == 0) {
-                die "Command failed: $!";
-            }
+        run($c);
+    }
+    print "== Updating globalsight.jar ==\n";
+    my $p = 'globalsight.ear/lib/globalsight.jar';
+    run("cp $capRoot/$p $destRoot/$p");
+}
+
+sub run($) {
+    my $cmd = shift;
+    print "$cmd\n";
+    unless ($DRY_RUN) {
+        unless (system($cmd) == 0) {
+            die "Commandfailed: $!";
         }
     }
 }
