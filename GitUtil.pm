@@ -1,6 +1,8 @@
 package GitUtil;
 
 use strict;
+use Data::Dumper;
+use GitLog;
 
 sub get_since($) {
     my $name = shift;
@@ -32,5 +34,22 @@ sub update_since($$) {
 
     print "Last commit is now $newSince\n";
 }
+
+sub get_head($) {
+    my ($repo) = @_;
+    my $commitId = undef;
+    # XXX This is inefficient -- it actually parses the whole log
+    # (origin..HEAD) needlessly, ignoring everything after the first commit
+    my $log = new GitLog($repo, "origin", 
+        sub { 
+            my $entry = shift;
+            $commitId ||= $entry->{commit};
+        }
+    );
+    $log->init;
+    $log->next;
+    return $commitId;
+}
+
 
 1;
