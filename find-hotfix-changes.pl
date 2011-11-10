@@ -2,6 +2,8 @@
 
 # Find all the files in a tree that need to be updated as part of the 
 # hotfix process.
+# This assumes everything is built -- 'ant dist' is the easiest way to
+# ensure this.
 
 use Git;
 use GitUtil;
@@ -12,6 +14,7 @@ sub run($);
 # TODO: this will not handle jars correctly
 
 my @ALLOWED = (
+    'main6/envoy/src/jsp/',
     'main6/envoy/src/java/',
     'main6/diplomat/dev/src/java/',
     'main6/ling/',
@@ -44,15 +47,17 @@ print "Head is " . GitUtil::get_head($repo) . "\n";
                                $commit . "..HEAD");
 
 my @modified = ();
-while (<$log>) {
+LINE: while (<$log>) {
     # Lines start 'main6'
     chomp;
     foreach my $prefix (@ALLOWED) {
         if (/^$prefix/) {
             (my $s = $_) =~ s/^$prefix//;
             push @modified, $s;
+            next LINE;
         }
     }
+    print "Ignoring: $_\n";
 }
 
 $repo->command_close_pipe($log, $command);
