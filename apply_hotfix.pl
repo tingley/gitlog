@@ -2,13 +2,20 @@
 
 use strict;
 
-# Copy over all non-globalsight.jar files
 
+# !!!
+# DEPRECATED - use find-hotfix-changes instead.
+# !!!
+
+
+# Copy over all non-globalsight.jar files
 # TODO: 
 # - automatically fetch file list from git log rather than hardcode
 # - include globalsight.jar
 # - parameterize source and dest locations
 # - sanity checks?
+
+my $DRY_RUN = 1;
 
 # Point it to the jboss directory
 my $jboss = "/home/chase/test/jboss";
@@ -26,37 +33,40 @@ my @files = qw(
     com/globalsight/resources/messages/LocaleResource_zh_CN.properties
 );
 
-chdir($buildDirectory) || die $!;
+sub update_files($$@) {
+    my ($jboss, $buildDirectory, @files) = @_;
 
-my @filenames = ();
+    chdir($buildDirectory) || die $!;
 
-foreach my $f (@files) {
-    my @parts = split /\//, $f;
-    push @filenames, $parts[$#parts];
-}
+    my @filenames = ();
 
-my @filesToCopy = ();
-foreach my $name (@filenames) {
-    open(my $fh, "find . -name $name|") || die $!;
-    my @lines = <$fh>;
-    if (scalar @lines > 1) {
-        print STDERR "Ambiguous filename '$name':\n";
-        foreach my $l (@lines) {
-            print STDERR "$l\n";
-        }
-        die;
+    foreach my $f (@files) {
+        my @parts = split /\//, $f;
+        push @filenames, $parts[$#parts];
     }
-    my $path = $lines[0];
-    chomp $path;
-    push @filesToCopy, $path;
-}
+
+    my @filesToCopy = ();
+    foreach my $name (@filenames) {
+        open(my $fh, "find . -name $name|") || die $!;
+        my @lines = <$fh>;
+        if (scalar @lines > 1) {
+            print STDERR "Ambiguous filename '$name':\n";
+            foreach my $l (@lines) {
+                print STDERR "$l\n";
+            }
+            die;
+        }
+        my $path = $lines[0];
+        chomp $path;
+        push @filesToCopy, $path;
+    }
 
 # Make sure everthing is in a location we know about
-foreach my $path (@filesToCopy) {
-    unless ($path =~ /^.\/capclasses\/globalsight.ear\/lib\/classes\//) {
-        print "Unknown location: $path\n";
+    foreach my $path (@filesToCopy) {
+        unless ($path =~ /^.\/capclasses\/globalsight.ear\/lib\/classes\//) {
+            print "Unknown location: $path\n";
+        }
     }
-}
 
 # Remapping 
 # ./capclasses/globalsight.ear/lib/classes/com/globalsight/resources/messages/LocaleResource.properties
@@ -68,16 +78,19 @@ foreach my $path (@filesToCopy) {
 # to 
 # [jboss]/jboss_server/server/default/deploy/[PATH]
 
-my @commands = ();
-foreach my $path (@filesToCopy) {
-    (my $dest = $path) =~ s/^.*capclasses\//$jboss\/jboss_server\/server\/default\/deploy\//;
-    my $cmd = "cp $path $dest";
-    push @commands, $cmd;
-}
+    my @commands = ();
+    foreach my $path (@filesToCopy) {
+        (my $dest = $path) =~ s/^.*capclasses\//$jboss\/jboss_server\/server\/default\/deploy\//;
+        my $cmd = "cp $path $dest";
+        push @commands, $cmd;
+    }
 
-foreach my $c (@commands) {
-    print "$c\n";
-    unless (system($c) == 0) {
-        die "Command failed: $!";
+    foreach my $c (@commands) {
+        print "$c\n";
+        unless ($DRY_RUN) {
+            unless (system($c) == 0) {
+                die "Command failed: $!";
+            }
+        }
     }
 }
