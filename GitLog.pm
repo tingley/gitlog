@@ -4,6 +4,20 @@ package GitLog;
 use strict;
 use Data::Dumper;
 
+# 
+# Usage
+#
+# 'use Git;' first.
+# Initialize a repo, then pass it to GitLog along with a 
+# 'since' date and a callback that will be called once per entry.
+#
+# For example:
+#   my $repo = Git->repository (Directory => '/home/me/repo');
+#   my $log = new GitLog($repo, $since, \&entry_callback);
+#   $log->init
+#
+# The log supports has_next and next methods.
+
 {
     package GitLog::Entry;
     package GitLog::Parser;
